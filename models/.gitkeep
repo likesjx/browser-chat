@@ -1,0 +1,22 @@
+# Models Directory
+
+This directory is for ONNX model files that must be downloaded by the user.
+
+## Required Models
+
+### LLM Model (Required)
+- **File**: `tinyllama-q8.onnx` (~550MB)
+- **Download**: https://huggingface.co/onnx-community/TinyLlama-1.1B-Chat-v1.0-onnx
+- **Purpose**: Main language model for chat inference
+
+### Embedding Model (Optional)
+- **File**: `minilm-l6-q8.onnx` (~23MB)
+- **Download**: https://huggingface.co/onnx-community/all-MiniLM-L6-v2
+- **Purpose**: Generate embeddings for vector search in conversation history
+
+## Important Notes
+
+- **Do NOT commit models to Git**: Files are too large (>500MB)
+- Models must be downloaded manually by each user
+- See README.md for detailed download instructions
+- Component will display error if models not found

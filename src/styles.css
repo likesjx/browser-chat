@@ -1,0 +1,286 @@
+/**
+ * Chat Component Styles
+ *
+ * Encapsulated styles for the chat web component using CSS custom properties
+ * for theming. Supports visibility states, responsive sizing, and animations.
+ */
+
+/* CSS Custom Properties (Raycast exact theme) */
+:host {
+  /* Colors - Exact Raycast dark blue theme */
+  --chat-bg-color: #2b3f5c;
+  --chat-bg-input: #3d5270;
+  --chat-text-color: #e8eaed;
+  --chat-text-secondary: #8b96a5;
+  --chat-border-color: rgba(255, 255, 255, 0.08);
+  --chat-accent-color: #FF6363;
+  --chat-error-color: #dc3545;
+  --chat-success-color: #28a745;
+  --chat-shadow: 0 16px 48px rgba(0, 0, 0, 0.5),
+                 0 4px 16px rgba(0, 0, 0, 0.3);
+
+  /* Sizing - Raycast dimensions */
+  --chat-width: 700px;
+  --chat-max-height: 75vh;
+  --chat-border-radius: 16px;
+  --chat-padding: 0;
+
+  /* Typography */
+  --chat-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto',
+                      'Helvetica Neue', Arial, sans-serif;
+  --chat-font-size: 15px;
+  --chat-line-height: 1.5;
+
+  /* Animation - Smooth like Raycast */
+  --chat-transition-speed: 0.15s;
+
+  /* Z-index */
+  --chat-z-index: 9999;
+}
+
+/* Container - Exact Raycast dark theme */
+.chat-container {
+  position: fixed;
+  top: 15vh;
+  left: 50%;
+  transform: translate(-50%, 0);
+  width: var(--chat-width);
+  max-height: var(--chat-max-height);
+  background: var(--chat-bg-color);
+  border: 1px solid var(--chat-border-color);
+  border-radius: var(--chat-border-radius);
+  box-shadow: var(--chat-shadow);
+  font-family: var(--chat-font-family);
+  font-size: var(--chat-font-size);
+  line-height: var(--chat-line-height);
+  color: var(--chat-text-color);
+  z-index: var(--chat-z-index);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+  visibility: hidden;
+  opacity: 0;
+  transform: translate(-50%, -8px);
+  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              visibility 0.2s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Visible state - Smooth entrance like Raycast */
+.chat-container.visible {
+  visibility: visible;
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* Input wrapper - Raycast exact style */
+.chat-input-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 20px 24px;
+  background: var(--chat-bg-input);
+  border-bottom: 1px solid var(--chat-border-color);
+}
+
+/* Input label - Hidden by default, Raycast doesn't show it */
+.chat-label {
+  display: none;
+}
+
+/* Text input - Raycast exact style */
+.chat-input {
+  width: 100%;
+  min-height: 28px;
+  max-height: 120px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  font-family: var(--chat-font-family);
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--chat-text-color);
+  resize: none;
+  outline: none;
+  transition: none;
+}
+
+.chat-input:focus {
+  border: none;
+  box-shadow: none;
+}
+
+.chat-input::placeholder {
+  color: var(--chat-text-secondary);
+  font-weight: 400;
+}
+
+/* Response area - Raycast dark style */
+.chat-response {
+  padding: 24px;
+  background: transparent;
+  max-height: 400px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  display: none;
+  margin: 0;
+  color: var(--chat-text-color);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.chat-response.visible {
+  display: block;
+}
+
+/* Response states */
+.chat-response.loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--chat-text-secondary);
+  font-style: normal;
+  font-size: 14px;
+}
+
+.chat-response.error {
+  background: transparent;
+  color: var(--chat-error-color);
+}
+
+/* Loading spinner - Raycast dark theme */
+.loading-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-top-color: var(--chat-accent-color);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Actions area */
+.chat-actions {
+  display: none;
+  gap: 8px;
+  padding: 16px 24px;
+  border-top: 1px solid var(--chat-border-color);
+}
+
+.chat-actions.visible {
+  display: flex;
+}
+
+/* Buttons - Raycast dark theme */
+.chat-button {
+  padding: 7px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--chat-text-color);
+  font-family: var(--chat-font-family);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.chat-button:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.chat-button:active {
+  transform: scale(0.98);
+}
+
+.chat-button.primary {
+  background: var(--chat-accent-color);
+  color: white;
+  border-color: var(--chat-accent-color);
+}
+
+.chat-button.primary:hover {
+  background: #ff4f4f;
+  border-color: #ff4f4f;
+}
+
+.retry-button {
+  background: var(--chat-error-color);
+  color: white;
+  border-color: var(--chat-error-color);
+}
+
+.retry-button:hover {
+  background: #c82333;
+  border-color: #c82333;
+}
+
+/* Help text - Raycast dark theme */
+.chat-help {
+  font-size: 11px;
+  color: var(--chat-text-secondary);
+  text-align: center;
+  padding: 12px 24px 16px;
+  font-weight: 400;
+  border-top: 1px solid transparent;
+}
+
+.chat-help kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 10px;
+  font-family: var(--chat-font-family);
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 4px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Responsive sizing */
+@media (max-width: 768px) {
+  :host {
+    --chat-width: 94vw;
+    --chat-max-height: 80vh;
+  }
+
+  .chat-container {
+    top: 10vh;
+  }
+
+  .chat-input {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+}
+
+/* Focus styles for accessibility */
+.chat-input:focus-visible,
+.chat-button:focus-visible {
+  outline: 2px solid var(--chat-accent-color);
+  outline-offset: 2px;
+}
+
+/* Scrollbar styling - Raycast dark theme */
+.chat-response::-webkit-scrollbar {
+  width: 6px;
+}
+
+.chat-response::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.chat-response::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+.chat-response::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.25);
+}

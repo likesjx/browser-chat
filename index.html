@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Browser Chat - MVP Test Page</title>
+
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      line-height: 1.6;
+      color: #333;
+    }
+
+    h1 {
+      color: #007bff;
+      border-bottom: 2px solid #007bff;
+      padding-bottom: 10px;
+    }
+
+    .section {
+      background: #f8f9fa;
+      border-left: 4px solid #007bff;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 4px;
+    }
+
+    .section h2 {
+      margin-top: 0;
+      color: #007bff;
+    }
+
+    kbd {
+      display: inline-block;
+      padding: 3px 8px;
+      font-size: 12px;
+      font-family: monospace;
+      background: #f0f0f0;
+      border: 1px solid #ccc;
+      border-radius: 3px;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.2);
+    }
+
+    .status {
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      background: #e7f3ff;
+      border: 1px solid #b3d9ff;
+    }
+
+    .status.success {
+      background: #d4edda;
+      border-color: #c3e6cb;
+      color: #155724;
+    }
+
+    .status.error {
+      background: #f8d7da;
+      border-color: #f5c6cb;
+      color: #721c24;
+    }
+
+    .buttons {
+      display: flex;
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: 1px solid #007bff;
+      background: #007bff;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    button:hover {
+      background: #0056b3;
+    }
+
+    button.secondary {
+      background: white;
+      color: #007bff;
+    }
+
+    button.secondary:hover {
+      background: #f0f0f0;
+    }
+
+    .event-log {
+      background: #1e1e1e;
+      color: #e0e0e0;
+      padding: 15px;
+      border-radius: 4px;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      margin: 20px 0;
+    }
+
+    .event-log-entry {
+      margin: 5px 0;
+      padding: 5px;
+      border-left: 3px solid #007bff;
+      padding-left: 10px;
+    }
+
+    .event-log-entry.error {
+      border-left-color: #dc3545;
+    }
+
+    .event-log-entry.success {
+      border-left-color: #28a745;
+    }
+
+    code {
+      background: #f0f0f0;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+    }
+
+    ul {
+      margin-left: 20px;
+    }
+
+    li {
+      margin: 10px 0;
+    }
+
+    .warning {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      color: #856404;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 20px 0;
+    }
+
+    .info {
+      background: #d1ecf1;
+      border: 1px solid #bee5eb;
+      color: #0c5460;
+      padding: 15px;
+      border-radius: 4px;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>🤖 Browser Chat - MVP Test Page</h1>
+
+  <div class="section">
+    <h2>Getting Started</h2>
+    <p>This is the MVP (Minimum Viable Product) test page for the Browser Chat component.</p>
+
+    <div class="info">
+      <strong>🚀 Real ONNX Inference:</strong> This version uses <strong>real language models</strong> running entirely in your browser via ONNX Runtime Web (through transformers.js).
+      The first load will download Gemma 3 270M (~270MB), then it's cached locally for instant subsequent loads.
+    </div>
+
+    <ol>
+      <li>Press <kbd>Cmd-K</kbd> (Mac) or <kbd>Ctrl-K</kbd> (Windows/Linux) to activate the chat</li>
+      <li>Type your message in the input box</li>
+      <li>Press <kbd>Enter</kbd> to submit (use <kbd>Shift-Enter</kbd> for new lines)</li>
+      <li>Watch tokens stream in real-time!</li>
+      <li>Press <kbd>Esc</kbd> to cancel generation or close the chat</li>
+    </ol>
+  </div>
+
+  <div class="section">
+    <h2>Component Status</h2>
+    <div id="status" class="status">
+      <strong>Loading...</strong> Initializing component...
+    </div>
+
+    <div class="buttons">
+      <button onclick="activateChat()">📱 Activate Chat (Cmd-K)</button>
+      <button class="secondary" onclick="testHistory()">📜 View History</button>
+      <button class="secondary" onclick="clearHistory()">🗑️ Clear History</button>
+      <button class="secondary" onclick="inspectState()">🔍 Inspect State</button>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Event Log</h2>
+    <p>Real-time events from the chat component:</p>
+    <div id="eventLog" class="event-log">
+      <div class="event-log-entry">Waiting for events...</div>
+    </div>
+  </div>
+
+  <div class="section">
+    <h2>Test Scenarios</h2>
+    <ul>
+      <li><strong>Activation:</strong> Try Cmd-K/Ctrl-K to show the component</li>
+      <li><strong>Prompts to try:</strong>
+        <ul>
+          <li>"Hello" - Simple greeting</li>
+          <li>"What is a web component?" - Detailed explanation</li>
+          <li>"Explain ONNX" - Technical info</li>
+          <li>Any other question - Generic response</li>
+        </ul>
+      </li>
+      <li><strong>Streaming:</strong> Watch tokens appear word-by-word</li>
+      <li><strong>Storage:</strong> Check IndexedDB in DevTools (Application → IndexedDB → chat-component-db)</li>
+      <li><strong>Cancellation:</strong> Press Esc during generation to cancel</li>
+      <li><strong>History:</strong> Click "View History" to see saved conversations</li>
+    </ul>
+  </div>
+
+  <div class="section">
+    <h2>DevTools Instructions</h2>
+    <p>Open your browser's DevTools to inspect:</p>
+    <ul>
+      <li><strong>Console:</strong> View component logs and events</li>
+      <li><strong>Application → IndexedDB:</strong> See stored conversations</li>
+      <li><strong>Elements:</strong> Inspect the Shadow DOM structure</li>
+      <li><strong>Network:</strong> (Would show model downloads with real models)</li>
+    </ul>
+  </div>
+
+  <div class="info">
+    <strong>💡 Next Steps:</strong> To use real ONNX models:
+    <ol>
+      <li>Download TinyLlama ONNX model (~550MB) to <code>/models/</code> directory</li>
+      <li>Update <code>model-url</code> attribute to point to your model file</li>
+      <li>Replace mock responses in <code>model-manager.js</code> with real ONNX inference</li>
+      <li>Full instructions in <code>README.md</code></li>
+    </ol>
+  </div>
+
+  <!-- Chat Component -->
+  <chat-component
+    model-url="onnx-community/gemma-3-270m-it-ONNX"
+    embedding-url="onnx-community/embeddinggemma-300m-ONNX"
+    system-prompt="You are a helpful AI assistant running in the browser."
+    temperature="0.7"
+    max-tokens="100"
+    inference-timeout="60000"
+  ></chat-component>
+
+  <!-- Component Script (ES6 Module) -->
+  <script type="module">
+    import ChatComponent from './src/chat-component.js';
+
+    const component = document.querySelector('chat-component');
+    const statusDiv = document.getElementById('status');
+    const eventLog = document.getElementById('eventLog');
+
+    // Event logging function
+    function logEvent(message, type = 'info') {
+      const entry = document.createElement('div');
+      entry.className = `event-log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      eventLog.appendChild(entry);
+      eventLog.scrollTop = eventLog.scrollHeight;
+    }
+
+    // Component connected
+    component.addEventListener('chat-connected', (e) => {
+      statusDiv.className = 'status success';
+      statusDiv.innerHTML = '<strong>✅ Component Ready!</strong> Press Cmd-K/Ctrl-K to activate.';
+      logEvent('Chat component connected and ready', 'success');
+    });
+
+    // Chat activated
+    component.addEventListener('chat-activated', () => {
+      logEvent('Chat activated', 'success');
+    });
+
+    // Chat hidden
+    component.addEventListener('chat-hidden', () => {
+      logEvent('Chat hidden');
+    });
+
+    // Generation started
+    component.addEventListener('generation-started', (e) => {
+      logEvent(`Generation started: "${e.detail.prompt}"`, 'success');
+    });
+
+    // Generation progress
+    component.addEventListener('generation-progress', (e) => {
+      if (e.detail.tokenCount % 20 === 0) {
+        logEvent(`Generated ${e.detail.tokenCount} tokens...`);
+      }
+    });
+
+    // Generation complete
+    component.addEventListener('generation-complete', (e) => {
+      logEvent(`✓ Generation complete (${e.detail.tokenCount} tokens, ${e.detail.duration}ms, saved: ${e.detail.saved})`, 'success');
+    });
+
+    // Generation cancelled
+    component.addEventListener('generation-cancelled', (e) => {
+      logEvent(`Generation cancelled (${e.detail.tokenCount} tokens)`, 'error');
+    });
+
+    // Generation error
+    component.addEventListener('generation-error', (e) => {
+      logEvent(`Error: ${e.detail.error.message}`, 'error');
+    });
+
+    // History cleared
+    component.addEventListener('history-cleared', (e) => {
+      logEvent(`History cleared (${e.detail.count} conversations deleted)`, 'success');
+    });
+
+    // Make component accessible globally for button functions
+    window.chatComponent = component;
+
+    // Log initial state
+    logEvent('Test page loaded, waiting for component initialization...');
+  </script>
+
+  <!-- Button Functions -->
+  <script>
+    function activateChat() {
+      window.chatComponent.activate();
+    }
+
+    async function testHistory() {
+      const history = await window.chatComponent.getHistory(10);
+      console.log('Conversation History:', history);
+      alert(`You have ${history.length} conversation(s) in history. Check console for details.`);
+    }
+
+    async function clearHistory() {
+      if (confirm('Are you sure you want to clear all conversation history?')) {
+        const result = await window.chatComponent.clearHistory();
+        alert(`Cleared ${result.count} conversation(s) from history.`);
+      }
+    }
+
+    function inspectState() {
+      const component = window.chatComponent;
+      const state = {
+        isVisible: component.isVisible,
+        isGenerating: component.isGenerating,
+        isModelLoaded: component.isModelLoaded,
+        conversationCount: component.conversationCount,
+        modelUrl: component.modelUrl,
+        temperature: component.temperature,
+        maxTokens: component.maxTokens
+      };
+      console.log('Component State:', state);
+      alert('Component state logged to console. Press F12 to view.');
+    }
+  </script>
+</body>
+</html>
