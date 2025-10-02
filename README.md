@@ -39,7 +39,7 @@ Navigate to: `http://localhost:8000/index.html`
 **Note**: Models are loaded automatically from HuggingFace on first use and cached locally:
 - **Gemma 3 270M** (~270MB) - Text generation model
   `onnx-community/gemma-3-270m-it-ONNX`
-- **Gemma Embedding 300M** (~300MB) - Embedding model for vector storage
+- **Gemma Embedding 300M** (~300MB) - Embedding model for vector storage (768 dimensions)
   `onnx-community/embeddinggemma-300m-ONNX`
 
 The first load will take a few minutes to download (~570MB total). Subsequent loads are instant thanks to browser caching.

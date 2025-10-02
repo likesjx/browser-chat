@@ -29,6 +29,12 @@ class ChatComponent extends HTMLElement {
       focusedElement: 'none' // 'input' | 'response' | 'none'
     };
 
+    // Model loading state
+    this._modelLoading = false;
+    this._embeddingLoading = false;
+    this._lastModelUrl = null;
+    this._lastEmbeddingUrl = null;
+
     // Configuration (defaults)
     this._config = {
       modelUrl: null,
@@ -182,14 +188,16 @@ class ChatComponent extends HTMLElement {
     switch (name) {
       case 'model-url':
         this._config.modelUrl = newValue;
-        if (newValue && this.isConnected) {
+        // Only load if URL changed and not already loading/loaded
+        if (newValue && this.isConnected && newValue !== this._lastModelUrl && !this._modelLoading) {
           this._loadModels();
         }
         break;
 
       case 'embedding-url':
         this._config.embeddingUrl = newValue;
-        if (newValue && this.isConnected) {
+        // Only load if URL changed and not already loading/loaded
+        if (newValue && this.isConnected && newValue !== this._lastEmbeddingUrl && !this._embeddingLoading) {
           this._loadEmbeddingModel();
         }
         break;
@@ -343,10 +351,13 @@ class ChatComponent extends HTMLElement {
     this.state.visibility = 'input-visible';
     this._container.classList.add('visible');
 
-    // Ensure focus happens after DOM updates
-    requestAnimationFrame(() => {
+    // Ensure focus happens after animation completes (200ms transition)
+    setTimeout(() => {
       this._input.focus();
-    });
+      // Move cursor to end of text if any exists
+      const len = this._input.value.length;
+      this._input.setSelectionRange(len, len);
+    }, 220);
 
     // Add click-outside listener
     setTimeout(() => {
@@ -411,7 +422,7 @@ class ChatComponent extends HTMLElement {
       // Model not loaded yet - queue prompt and show loading message
       this.state.visibility = 'generating';
       this._response.classList.add('visible', 'loading');
-      this._response.innerHTML = '<span class="loading-spinner"></span> Loading model... Your prompt will be processed when ready.';
+      this._response.innerHTML = '<div style="display: flex; flex-direction: column; gap: 12px; align-items: center;"><span class="loading-spinner"></span><span style="font-size: 13px; color: var(--chat-text-secondary);">Loading model...</span></div>';
 
       modelManager.queuePrompt(prompt);
 
@@ -428,9 +439,12 @@ class ChatComponent extends HTMLElement {
     this.state.visibility = 'generating';
     this.state.isGenerating = true;
 
-    // Show response area with loading state
+    // Show response area with loading state (cylon eye)
     this._response.classList.add('visible', 'loading');
-    this._response.innerHTML = '<span class="loading-spinner"></span> Generating response...';
+    this._response.innerHTML = '<div style="display: flex; flex-direction: column; gap: 16px; align-items: center;"><span class="loading-spinner"></span><span style="font-size: 13px; color: var(--chat-text-secondary); font-weight: 500;">Generating response...</span></div>';
+
+    // Force browser to paint before starting generation (ensures animation starts)
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
 
     // Dispatch generation started event
     this.dispatchEvent(new CustomEvent('generation-started', {
@@ -447,16 +461,37 @@ class ChatComponent extends HTMLElement {
    */
   async _generateResponse(prompt) {
     try {
-      // Clear loading state
-      this._response.classList.remove('loading');
-      this._response.textContent = '';
+      const loadingStartTime = Date.now();
+      const minLoadingTime = 800; // Show Cylon eye for at least 800ms
 
+      // Wait for minimum loading time OR first token (whichever is longer)
       let fullResponse = '';
       let tokenCount = 0;
       const startTime = Date.now();
 
-      // Stream tokens
-      for await (const token of modelManager.generateTokensWithTimeout(prompt)) {
+      // Start streaming tokens
+      const tokenGenerator = modelManager.generateTokensWithTimeout(prompt);
+      const firstTokenPromise = tokenGenerator.next();
+
+      // Wait at least minLoadingTime before showing first token
+      const [firstToken] = await Promise.all([
+        firstTokenPromise,
+        new Promise(resolve => setTimeout(resolve, minLoadingTime))
+      ]);
+
+      // Clear loading state after minimum time has passed
+      this._response.classList.remove('loading');
+      this._response.textContent = '';
+
+      // Process first token if we got one
+      if (!firstToken.done && firstToken.value) {
+        fullResponse += firstToken.value;
+        tokenCount++;
+        this._response.textContent = fullResponse;
+      }
+
+      // Stream remaining tokens
+      for await (const token of tokenGenerator) {
         fullResponse += token;
         tokenCount++;
 
@@ -481,8 +516,13 @@ class ChatComponent extends HTMLElement {
       // Focus response area
       this._response.focus();
 
-      // Save to storage
-      const saved = await this._saveConversation(prompt, fullResponse);
+      // Save to storage (only if we have a response)
+      let saved = false;
+      if (fullResponse.trim().length > 0) {
+        saved = await this._saveConversation(prompt, fullResponse);
+      } else {
+        console.log('Skipping save - empty response (likely cancelled)');
+      }
 
       // Dispatch completion event
       this.dispatchEvent(new CustomEvent('generation-complete', {
@@ -493,20 +533,23 @@ class ChatComponent extends HTMLElement {
     } catch (error) {
       this.state.isGenerating = false;
 
-      if (error.message.includes('cancelled')) {
+      // Handle error message safely
+      const errorMessage = error?.message || error?.toString() || 'Unknown error occurred';
+
+      if (errorMessage.includes('cancelled')) {
         // Cancellation handled separately
         return;
       }
 
       // Show error
-      this._showError(error.message);
+      this._showError(errorMessage);
 
       this.dispatchEvent(new CustomEvent('generation-error', {
         bubbles: true,
         detail: {
           prompt,
-          error,
-          errorType: error.message.includes('timeout') ? 'inference-timeout' : 'inference-error'
+          error: errorMessage,
+          errorType: errorMessage.includes('timeout') ? 'inference-timeout' : 'inference-error'
         }
       }));
     }
@@ -614,6 +657,15 @@ class ChatComponent extends HTMLElement {
       return;
     }
 
+    // Prevent duplicate loading
+    if (this._modelLoading) {
+      console.log('Model already loading, skipping...');
+      return;
+    }
+
+    this._modelLoading = true;
+    this._lastModelUrl = this._config.modelUrl;
+
     this.dispatchEvent(new CustomEvent('model-loading', {
       bubbles: true,
       detail: { modelUrl: this._config.modelUrl, modelType: 'llm' }
@@ -670,6 +722,8 @@ class ChatComponent extends HTMLElement {
       }));
 
       this._showError(error.message);
+    } finally {
+      this._modelLoading = false;
     }
   }
 
@@ -681,12 +735,23 @@ class ChatComponent extends HTMLElement {
       return;
     }
 
+    // Prevent duplicate loading
+    if (this._embeddingLoading) {
+      console.log('Embedding model already loading, skipping...');
+      return;
+    }
+
+    this._embeddingLoading = true;
+    this._lastEmbeddingUrl = this._config.embeddingUrl;
+
     try {
       await modelManager.loadModel(this._config.embeddingUrl, 'embedding');
       console.log('Embedding model loaded');
     } catch (error) {
       console.warn('Failed to load embedding model:', error.message);
       // Non-critical error, continue without embeddings
+    } finally {
+      this._embeddingLoading = false;
     }
   }
 

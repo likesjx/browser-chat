@@ -136,14 +136,15 @@
   display: block;
 }
 
-/* Response states */
-.chat-response.loading {
-  display: flex;
+/* Response states - loading overrides visible */
+.chat-response.visible.loading {
+  display: flex !important;
   align-items: center;
-  gap: 10px;
+  justify-content: center;
   color: var(--chat-text-secondary);
   font-style: normal;
   font-size: 14px;
+  min-height: 60px;
 }
 
 .chat-response.error {
@@ -151,18 +152,49 @@
   color: var(--chat-error-color);
 }
 
-/* Loading spinner - Raycast dark theme */
+/* Loading spinner - Cylon eye effect */
 .loading-spinner {
-  width: 14px;
-  height: 14px;
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  border-top-color: var(--chat-accent-color);
-  border-radius: 50%;
-  animation: spin 0.6s linear infinite;
+  display: block;
+  width: 200px;
+  height: 6px;
+  background: rgba(255, 99, 99, 0.15);
+  border-radius: 3px;
+  position: relative;
+  overflow: hidden;
+  margin: 0 auto;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.loading-spinner::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(255, 99, 99, 0.7) 10%,
+    #FF6363 50%,
+    rgba(255, 99, 99, 0.7) 90%,
+    transparent
+  );
+  border-radius: 3px;
+  animation: cylon 1.8s ease-in-out infinite;
+  will-change: transform;
+  transform: translateX(-100%);
+  box-shadow: 0 0 12px 2px rgba(255, 99, 99, 0.8);
+}
+
+@keyframes cylon {
+  0% {
+    transform: translateX(-100%);
+  }
+  50% {
+    transform: translateX(250%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
 }
 
 /* Actions area */
@@ -261,7 +293,10 @@
 }
 
 /* Focus styles for accessibility */
-.chat-input:focus-visible,
+.chat-input:focus-visible {
+  outline: none; /* Raycast doesn't show focus outline on input */
+}
+
 .chat-button:focus-visible {
   outline: 2px solid var(--chat-accent-color);
   outline-offset: 2px;

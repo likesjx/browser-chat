@@ -73,13 +73,15 @@ function validateConversationPair(conversationPair) {
     throw new Error(`Response length must be 1-100000 characters, got ${responseLength}`);
   }
 
-  // Validate embedding if present (must be Float32Array with 384 dimensions)
+  // Validate embedding if present (must be Float32Array with common dimensions)
   if (conversationPair.embedding) {
     if (!(conversationPair.embedding instanceof Float32Array)) {
       throw new Error('Embedding must be Float32Array');
     }
-    if (conversationPair.embedding.length !== 384) {
-      throw new Error(`Embedding must have 384 dimensions, got ${conversationPair.embedding.length}`);
+    // Accept common embedding dimensions: 384 (MiniLM), 768 (Gemma), 1024, 1536 (OpenAI)
+    const validDimensions = [384, 768, 1024, 1536];
+    if (!validDimensions.includes(conversationPair.embedding.length)) {
+      throw new Error(`Embedding must have valid dimensions (384, 768, 1024, or 1536), got ${conversationPair.embedding.length}`);
     }
   }
 
