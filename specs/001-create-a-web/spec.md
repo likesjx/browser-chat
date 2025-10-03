@@ -2,7 +2,7 @@
 
 **Feature Branch**: `001-create-a-web`
 **Created**: 2025-10-01
-**Status**: Draft
+**Status**: Complete
 **Input**: User description: "create a web component that listens for the cmd-k(mac)/ctrl-k(pc) hotkey, web component pops and the user can enter a prompt. The webcomponent will use an ONNX (or in browser) model that the prompt will be used to infer against to get a response. The response will show below the input box and the focus will follow. The prompt and the model response will be saved as a pair in indexddb along with an embedding (vector db). If the user clicks in the input box again, the response will disappear. If the user clicks outside of the input and response or hits esc key, the both the response and the prompt will disappear."
 
 ## Execution Flow (main)
