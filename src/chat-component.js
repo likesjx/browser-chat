@@ -5,7 +5,7 @@
  * in-browser LLM inference, streaming responses, and persistent storage.
  */
 
-import { modelManager } from './model-manager.js';
+import { workerManager } from './worker-manager.js';
 import * as storage from './storage-manager.js';
 
 /**
@@ -124,7 +124,7 @@ class ChatComponent extends HTMLElement {
   }
 
   get isModelLoaded() {
-    return modelManager.isLlmLoaded;
+    return workerManager.isLlmLoaded;
   }
 
   get conversationCount() {
@@ -172,11 +172,11 @@ class ChatComponent extends HTMLElement {
 
     // Cancel any active generation
     if (this.state.isGenerating) {
-      modelManager.cancelGeneration();
+      workerManager.cancelGeneration();
     }
 
     // Dispose model sessions
-    modelManager.dispose();
+    workerManager.dispose();
   }
 
   /**
@@ -204,22 +204,22 @@ class ChatComponent extends HTMLElement {
 
       case 'system-prompt':
         this._config.systemPrompt = newValue || 'You are a helpful AI assistant.';
-        modelManager.updateConfig({ systemPrompt: this._config.systemPrompt });
+        // Config will be passed in generateTokens call
         break;
 
       case 'temperature':
         this.temperature = newValue;
-        modelManager.updateConfig({ temperature: this._config.temperature });
+        // Config will be passed in generateTokens call
         break;
 
       case 'max-tokens':
         this.maxTokens = newValue;
-        modelManager.updateConfig({ maxTokens: this._config.maxTokens });
+        // Config will be passed in generateTokens call
         break;
 
       case 'inference-timeout':
         this.inferenceTimeout = newValue;
-        modelManager.updateConfig({ inferenceTimeout: this._config.inferenceTimeout });
+        // Config will be passed in generateTokens call
         break;
     }
   }
@@ -418,13 +418,11 @@ class ChatComponent extends HTMLElement {
     this.state.currentResponse = '';
 
     // Check if model is loaded
-    if (!modelManager.isLlmLoaded) {
-      // Model not loaded yet - queue prompt and show loading message
+    if (!workerManager.isLlmLoaded) {
+      // Model not loaded yet - show loading message and wait
       this.state.visibility = 'generating';
       this._response.classList.add('visible', 'loading');
       this._response.innerHTML = '<div style="display: flex; flex-direction: column; gap: 12px; align-items: center;"><span class="loading-spinner"></span><span style="font-size: 13px; color: var(--chat-text-secondary);">Loading model...</span></div>';
-
-      modelManager.queuePrompt(prompt);
 
       // Dispatch event to indicate model loading is needed
       this.dispatchEvent(new CustomEvent('model-loading-needed', {
@@ -470,7 +468,12 @@ class ChatComponent extends HTMLElement {
       const startTime = Date.now();
 
       // Start streaming tokens
-      const tokenGenerator = modelManager.generateTokensWithTimeout(prompt);
+      const tokenGenerator = workerManager.generateTokens(prompt, {
+        systemPrompt: this._config.systemPrompt,
+        temperature: this._config.temperature,
+        maxTokens: this._config.maxTokens,
+        inferenceTimeout: this._config.inferenceTimeout
+      });
       const firstTokenPromise = tokenGenerator.next();
 
       // Wait at least minLoadingTime before showing first token
@@ -559,7 +562,7 @@ class ChatComponent extends HTMLElement {
    * Cancel active generation
    */
   _cancelGeneration() {
-    modelManager.cancelGeneration();
+    workerManager.cancelGeneration();
     this.state.isGenerating = false;
     this.state.generationAborted = true;
 
@@ -616,7 +619,7 @@ class ChatComponent extends HTMLElement {
   async _saveConversation(prompt, response) {
     try {
       // Generate embedding
-      const embedding = await modelManager.generateEmbedding(prompt);
+      const embedding = await workerManager.generateEmbedding(prompt);
 
       // Create conversation pair
       const conversationPair = {
@@ -674,9 +677,14 @@ class ChatComponent extends HTMLElement {
     try {
       const startTime = Date.now();
 
-      await modelManager.loadModel(
+      await workerManager.loadLlmModel(
         this._config.modelUrl,
-        'llm',
+        {
+          systemPrompt: this._config.systemPrompt,
+          temperature: this._config.temperature,
+          maxTokens: this._config.maxTokens,
+          inferenceTimeout: this._config.inferenceTimeout
+        },
         (progress) => {
           this.dispatchEvent(new CustomEvent('model-progress', {
             bubbles: true,
@@ -697,21 +705,8 @@ class ChatComponent extends HTMLElement {
         await this._loadEmbeddingModel();
       }
 
-      // Process queued prompts
-      const queued = modelManager.getQueuedPrompts();
-      if (queued.length > 0) {
-        console.log(`Processing ${queued.length} queued prompts`);
-        // For MVP, just process the first one
-        if (queued[0]) {
-          // Clear any loading state first
-          this._response.classList.remove('loading');
-          this.state.isGenerating = false;
-
-          // Set the input value and submit
-          this._input.value = queued[0];
-          await this._submitPrompt();
-        }
-      }
+      // Model loaded - if user submitted prompt while loading, process it now
+      // (WorkerManager handles queueing internally)
 
     } catch (error) {
       console.error('Failed to load model:', error);
@@ -745,7 +740,7 @@ class ChatComponent extends HTMLElement {
     this._lastEmbeddingUrl = this._config.embeddingUrl;
 
     try {
-      await modelManager.loadModel(this._config.embeddingUrl, 'embedding');
+      await workerManager.loadEmbeddingModel(this._config.embeddingUrl);
       console.log('Embedding model loaded');
     } catch (error) {
       console.warn('Failed to load embedding model:', error.message);
