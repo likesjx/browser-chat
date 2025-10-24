@@ -24,14 +24,22 @@ export class WorkerManager {
    */
   _initWorker() {
     try {
+      console.log('[WorkerManager] Initializing worker...');
       this._worker = new Worker('./src/model-worker.js', { type: 'module' });
 
       this._worker.onmessage = (event) => {
+        console.log('[WorkerManager] Received message from worker:', event.data);
         this._handleMessage(event.data);
       };
 
       this._worker.onerror = (error) => {
-        console.error('Worker error:', error);
+        console.error('[WorkerManager] Worker error:', error);
+        console.error('[WorkerManager] Error details:', {
+          message: error.message,
+          filename: error.filename,
+          lineno: error.lineno,
+          colno: error.colno
+        });
         // Auto-restart worker on crash (once)
         if (this._worker) {
           this._worker.terminate();
@@ -39,8 +47,14 @@ export class WorkerManager {
         }
       };
 
+      this._worker.onmessageerror = (error) => {
+        console.error('[WorkerManager] Message error:', error);
+      };
+
+      console.log('[WorkerManager] Worker initialized successfully');
+
     } catch (error) {
-      console.error('Failed to create worker:', error);
+      console.error('[WorkerManager] Failed to create worker:', error);
       throw new Error(`Worker initialization failed: ${error.message}`);
     }
   }
@@ -50,6 +64,8 @@ export class WorkerManager {
    */
   _handleMessage(message) {
     const { type, data } = message;
+
+    console.log('[WorkerManager] Handling message type:', type);
 
     switch (type) {
       case 'load-progress':
@@ -144,22 +160,27 @@ export class WorkerManager {
    * Execute generation request
    */
   _executeGeneration(prompt, config, callbacks) {
+    console.log('[WorkerManager] Executing generation:', { prompt: prompt.substring(0, 50) });
     this._isGenerating = true;
     this._generationCallbacks = callbacks;
 
-    this._worker.postMessage({
+    const msg = {
       type: 'generate',
       data: {
         prompt,
         config
       }
-    });
+    };
+    console.log('[WorkerManager] Sending generate message:', msg);
+    this._worker.postMessage(msg);
   }
 
   /**
    * Load LLM model
    */
   async loadLlmModel(modelUrl, config = {}, onProgress = null) {
+    console.log('[WorkerManager] loadLlmModel called:', modelUrl);
+
     return new Promise((resolve, reject) => {
       // Register progress callback
       if (onProgress) {
@@ -172,13 +193,15 @@ export class WorkerManager {
       this._pendingRequests.set('load', { resolve, reject });
 
       // Send load message
-      this._worker.postMessage({
+      const msg = {
         type: 'load-llm',
         data: {
           modelUrl,
           config
         }
-      });
+      };
+      console.log('[WorkerManager] Sending message to worker:', msg);
+      this._worker.postMessage(msg);
     });
   }
 
@@ -204,7 +227,10 @@ export class WorkerManager {
    * Generate tokens (AsyncGenerator)
    */
   async* generateTokens(prompt, config = {}) {
+    console.log('[WorkerManager] generateTokens called:', { prompt: prompt.substring(0, 50), config });
+
     if (!this._isLlmLoaded) {
+      console.error('[WorkerManager] LLM model not loaded!');
       throw new Error('LLM model not loaded. Load model before generating.');
     }
 

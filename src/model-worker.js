@@ -5,6 +5,8 @@
  * blocking the main UI thread during compute-intensive operations.
  */
 
+console.log('[Worker] Worker script loaded successfully');
+
 // Import @huggingface/transformers (built on ONNX Runtime Web)
 let TransformersLib = null;
 
@@ -395,39 +397,47 @@ const pipelineManager = new PipelineManager();
 self.addEventListener('message', async (event) => {
   const { type, data } = event.data;
 
+  console.log('[Worker] Received message:', type, data);
+
   try {
     switch (type) {
       case 'load-llm':
+        console.log('[Worker] Loading LLM model:', data.modelUrl);
         await pipelineManager.loadLlm(data.modelUrl, data.config || {});
         break;
 
       case 'load-embedding':
+        console.log('[Worker] Loading embedding model:', data.modelUrl);
         await pipelineManager.loadEmbedding(data.modelUrl);
         break;
 
       case 'generate':
+        console.log('[Worker] Starting generation for prompt:', data.prompt?.substring(0, 50) + '...');
         await pipelineManager.generate(data.prompt, data.config || {});
         break;
 
       case 'embed':
+        console.log('[Worker] Generating embedding for text:', data.text?.substring(0, 50) + '...');
         await pipelineManager.generateEmbedding(data.text);
         break;
 
       case 'cancel':
+        console.log('[Worker] Cancelling generation');
         pipelineManager.cancel();
         break;
 
       case 'dispose':
+        console.log('[Worker] Disposing resources');
         pipelineManager.dispose();
         break;
 
       default:
         // Unknown message type - log and ignore (forward compatibility)
-        console.warn(`Unknown message type: ${type}`);
+        console.warn('[Worker] Unknown message type:', type);
     }
   } catch (error) {
     // Catch-all error handler to prevent worker crashes
-    console.error('Worker error:', error);
+    console.error('[Worker] Error processing message:', error);
     self.postMessage({
       type: 'generation-error',
       data: {

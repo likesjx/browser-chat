@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Worker Test</title>
+</head>
+<body>
+  <h1>Worker Initialization Test</h1>
+  <div id="log"></div>
+
+  <script type="module">
+    const log = document.getElementById('log');
+
+    function addLog(message, type = 'info') {
+      const entry = document.createElement('div');
+      entry.style.padding = '5px';
+      entry.style.margin = '5px 0';
+      entry.style.borderLeft = type === 'error' ? '3px solid red' : '3px solid green';
+      entry.style.paddingLeft = '10px';
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      log.appendChild(entry);
+    }
+
+    try {
+      addLog('Creating worker...');
+      const worker = new Worker('./src/model-worker.js', { type: 'module' });
+
+      worker.onmessage = (event) => {
+        addLog(`Message from worker: ${JSON.stringify(event.data)}`, 'info');
+      };
+
+      worker.onerror = (error) => {
+        addLog(`Worker error: ${error.message || error.toString()}`, 'error');
+        addLog(`  - filename: ${error.filename}`, 'error');
+        addLog(`  - lineno: ${error.lineno}`, 'error');
+        addLog(`  - colno: ${error.colno}`, 'error');
+        console.error('Full error object:', error);
+      };
+
+      worker.onmessageerror = (error) => {
+        addLog(`Message error: ${error}`, 'error');
+      };
+
+      addLog('Worker created successfully');
+
+      // Test message after 1 second
+      setTimeout(() => {
+        addLog('Sending test message to worker...');
+        worker.postMessage({ type: 'test', data: {} });
+      }, 1000);
+
+    } catch (error) {
+      addLog(`Failed to create worker: ${error.message}`, 'error');
+      console.error('Worker creation error:', error);
+    }
+  </script>
+</body>
+</html>
